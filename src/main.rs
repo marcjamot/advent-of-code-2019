@@ -1,11 +1,13 @@
 extern crate clap;
 use clap::{App, Arg};
 mod day_1;
+mod day_2;
 
 fn main() {
     let (day, input) = get_args();
     match day {
         1 => day_1::run(input.as_ref()),
+        2 => day_2::run(input.as_ref()),
         _ => panic!("ASF"),
     }
 }
