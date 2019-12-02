@@ -1,7 +1,7 @@
 use std::fs;
 
-pub fn run() {
-    let inputs = load_inputs("inputs/day_1.txt");
+pub fn run(input: &str) {
+    let inputs = load_inputs(input);
     part_1(&inputs);
     part_2(&inputs);
 }
