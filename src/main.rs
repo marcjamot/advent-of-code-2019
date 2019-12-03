@@ -2,12 +2,14 @@ extern crate clap;
 use clap::{App, Arg};
 mod day_1;
 mod day_2;
+mod day_3;
 
 fn main() {
     let (day, input) = get_args();
     match day {
         1 => day_1::run(input.as_ref()),
         2 => day_2::run(input.as_ref()),
+        3 => day_3::run(input.as_ref()),
         _ => panic!("ASF"),
     }
 }
@@ -21,7 +23,7 @@ fn get_args() -> (u8, String) {
                 .value_name("NUMBER")
                 .help("Day to execute, 1-25")
                 .required(true)
-                .possible_values(&["1", "2"]),
+                .possible_values(&["1", "2", "3"]),
         )
         .arg(
             Arg::with_name("input")
