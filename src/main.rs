@@ -4,6 +4,7 @@ mod day_1;
 mod day_2;
 mod day_3;
 mod day_4;
+mod day_5;
 
 fn main() {
     let (day, input) = get_args();
@@ -12,6 +13,7 @@ fn main() {
         2 => day_2::run(input.as_ref()),
         3 => day_3::run(input.as_ref()),
         4 => day_4::run(),
+        5 => day_5::run(input.as_ref()),
         _ => panic!("Cannot find wanted day."),
     }
 }
@@ -25,7 +27,7 @@ fn get_args() -> (u8, String) {
                 .value_name("NUMBER")
                 .help("Day to execute, 1-25")
                 .required(true)
-                .possible_values(&["1", "2", "3", "4"]),
+                .possible_values(&["1", "2", "3", "4", "5"]),
         )
         .arg(
             Arg::with_name("input")
