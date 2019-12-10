@@ -1,4 +1,11 @@
 extern crate clap;
+
+#[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 use clap::{App, Arg};
 mod day_1;
 mod day_2;
@@ -6,6 +13,7 @@ mod day_3;
 mod day_4;
 mod day_5;
 mod day_7;
+mod icc;
 
 fn main() {
     let (day, input) = get_args();
