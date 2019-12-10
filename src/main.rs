@@ -7,23 +7,18 @@ extern crate quickcheck;
 extern crate quickcheck_macros;
 
 use clap::{App, Arg};
-mod day_1;
-mod day_2;
-mod day_3;
-mod day_4;
-mod day_5;
-mod day_7;
+mod days;
 mod icc;
 
 fn main() {
     let (day, input) = get_args();
     match day {
-        1 => day_1::run(input.as_ref()),
-        2 => day_2::run(input.as_ref()),
-        3 => day_3::run(input.as_ref()),
-        4 => day_4::run(),
-        5 => day_5::run(input.as_ref()),
-        7 => day_7::run(input.as_ref()),
+        1 => days::day_1::run(input.as_ref()),
+        2 => days::day_2::run(input.as_ref()),
+        3 => days::day_3::run(input.as_ref()),
+        4 => days::day_4::run(),
+        5 => days::day_5::run(input.as_ref()),
+        7 => days::day_7::run(input.as_ref()),
         _ => panic!("Cannot find wanted day."),
     }
 }
