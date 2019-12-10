@@ -1,5 +1,6 @@
-use crate::icc::icc::{new, Computer};
 use std::fs;
+use crate::computer;
+use crate::computer::{Computer};
 
 pub fn run(input: &str) {
     let inputs = load_inputs(input);
@@ -26,8 +27,8 @@ fn part_1(inputs: &Vec<i64>) -> i64 {
     let mut instructions = inputs.clone();
     instructions[1] = 12;
     instructions[2] = 2;
-    let mut computer = new(instructions.len(), &instructions);
-    assert_eq!(computer.execute(), 0);
+    let mut computer = computer::new(instructions.len(), &instructions);
+    assert_eq!(0, computer.execute());
     return computer.get_memory_at(0);
 }
 
@@ -37,7 +38,7 @@ fn part_2(inputs: &Vec<i64>) -> (i64, i64) {
             let mut instructions = inputs.clone();
             instructions[1] = noun;
             instructions[2] = verb;
-            let mut computer = new(instructions.len(), &instructions);
+            let mut computer = computer::new(instructions.len(), &instructions);
             if computer.execute() != 0 {
                 continue;
             }

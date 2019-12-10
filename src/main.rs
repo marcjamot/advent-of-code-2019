@@ -8,7 +8,9 @@ extern crate quickcheck_macros;
 
 use clap::{App, Arg};
 mod days;
-mod icc;
+mod computer;
+mod reader;
+mod writer;
 
 fn main() {
     let (day, input) = get_args();
