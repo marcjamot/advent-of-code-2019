@@ -22,6 +22,7 @@ fn main() {
         5 => days::day_5::run(input.as_ref()),
         6 => days::day_6::run(input.as_ref()),
         7 => days::day_7::run(input.as_ref()),
+        8 => days::day_8::run(input.as_ref()),
         _ => panic!("Cannot find wanted day."),
     }
 }
@@ -35,7 +36,7 @@ fn get_args() -> (u8, String) {
                 .value_name("NUMBER")
                 .help("Day to execute, 1-25")
                 .required(true)
-                .possible_values(&["1", "2", "3", "4", "5", "6", "7"]),
+                .possible_values(&["1", "2", "3", "4", "5", "6", "7", "8"]),
         )
         .arg(
             Arg::with_name("input")
