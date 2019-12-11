@@ -1,85 +1,175 @@
+use crate::computer;
+use crate::computer::Computer;
+use crate::reader;
+use crate::writer;
 use std::fs;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::channel;
 use std::thread;
+use std::time::Duration;
 
 pub fn run(input: &str) {
     let inputs = load_inputs(input);
     part_1(&inputs);
+    part_2(&inputs);
 }
 
-fn load_inputs(file_name: &str) -> Vec<i32> {
+fn load_inputs(file_name: &str) -> Vec<i64> {
     let content = fs::read_to_string(file_name).expect("Could not read file");
     return content
         .split(",")
-        .map(|x| x.parse::<i32>().unwrap())
+        .map(|x| x.parse::<i64>().unwrap())
         .collect();
 }
 
-fn part_1(memory: &Vec<i32>) {
-    let permutations = get_permutations();
+fn part_1(memory: &Vec<i64>) {
+    let permutations = get_permutations(0);
 
+    let mut output = 0;
     for inputs in permutations {
-        // println!("Inputs: {:?}", inputs);
-
         let (tx_0, rx_0) = channel();
         let (tx_1, rx_1) = channel();
         let (tx_2, rx_2) = channel();
         let (tx_3, rx_3) = channel();
         let (tx_4, rx_4) = channel();
+        let (tx_ans, rx_ans) = channel();
 
-        tx_0.send(inputs[0]).expect("tx_0");
-        tx_1.send(inputs[1]).expect("tx_1");
-        tx_2.send(inputs[2]).expect("tx_2");
-        tx_3.send(inputs[3]).expect("tx_3");
-        tx_4.send(inputs[4]).expect("tx_4");
+        tx_0.send(inputs[0]).expect("Cannot init tx_0");
+        tx_1.send(inputs[1]).expect("Cannot init tx_1");
+        tx_2.send(inputs[2]).expect("Cannot init tx_2");
+        tx_3.send(inputs[3]).expect("Cannot init tx_3");
+        tx_4.send(inputs[4]).expect("Cannot init tx_4");
 
-        tx_0.send(0).expect("tx_0 init");
+        tx_0.send(0).expect("Cannot feed first input");
+
+        let mut c_0 = computer::new(memory.len(), memory);
+        c_0.set_reader(Box::new(reader::channel(rx_0)));
+        c_0.register_writer(Box::new(writer::channel(tx_1)));
+        let mut c_1 = computer::new(memory.len(), memory);
+        c_1.set_reader(Box::new(reader::channel(rx_1)));
+        c_1.register_writer(Box::new(writer::channel(tx_2)));
+        let mut c_2 = computer::new(memory.len(), memory);
+        c_2.set_reader(Box::new(reader::channel(rx_2)));
+        c_2.register_writer(Box::new(writer::channel(tx_3)));
+        let mut c_3 = computer::new(memory.len(), memory);
+        c_3.set_reader(Box::new(reader::channel(rx_3)));
+        c_3.register_writer(Box::new(writer::channel(tx_4)));
+        let mut c_4 = computer::new(memory.len(), memory);
+        c_4.set_reader(Box::new(reader::channel(rx_4)));
+        c_4.register_writer(Box::new(writer::channel(tx_ans)));
+
+        assert_eq!(0, c_0.execute());
+        assert_eq!(0, c_1.execute());
+        assert_eq!(0, c_2.execute());
+        assert_eq!(0, c_3.execute());
+        assert_eq!(0, c_4.execute());
+
+        loop {
+            let o = rx_ans.recv_timeout(Duration::from_millis(10)).unwrap_or(-1);
+            if o == -1 {
+                break;
+            }
+            if output < o {
+                output = o;
+            }
+        }
+    }
+
+    println!("Part 1: {}", output);
+}
+
+fn part_2(memory: &Vec<i64>) {
+    let permutations = get_permutations(5);
+
+    let mut output = 0;
+    for inputs in permutations {
+        let (tx_0, rx_0) = channel();
+        let (tx_1, rx_1) = channel();
+        let (tx_2, rx_2) = channel();
+        let (tx_3, rx_3) = channel();
+        let (tx_4, rx_4) = channel();
+        let (tx_ans, rx_ans) = channel();
+
+        tx_0.send(inputs[0]).expect("Cannot init tx_0");
+        tx_1.send(inputs[1]).expect("Cannot init tx_1");
+        tx_2.send(inputs[2]).expect("Cannot init tx_2");
+        tx_3.send(inputs[3]).expect("Cannot init tx_3");
+        tx_4.send(inputs[4]).expect("Cannot init tx_4");
+
+        tx_0.send(0).expect("Cannot feed first input");
 
         let m_0 = memory.clone();
         let t_0 = thread::Builder::new().name("0".to_string()).spawn(move || {
-            execute("0", m_0, rx_0, tx_1, false);
+            let mut c_0 = computer::new(m_0.len(), &m_0);
+            c_0.set_reader(Box::new(reader::channel(rx_0)));
+            c_0.register_writer(Box::new(writer::channel(tx_1)));
+            c_0.execute();
         });
         let m_1 = memory.clone();
         let t_1 = thread::Builder::new().name("1".to_string()).spawn(move || {
-            execute("1", m_1, rx_1, tx_2, false);
+            let mut c_1 = computer::new(m_1.len(), &m_1);
+            c_1.set_reader(Box::new(reader::channel(rx_1)));
+            c_1.register_writer(Box::new(writer::channel(tx_2)));
+            c_1.execute();
         });
         let m_2 = memory.clone();
         let t_2 = thread::Builder::new().name("2".to_string()).spawn(move || {
-            execute("2", m_2, rx_2, tx_3, false);
+            let mut c_2 = computer::new(m_2.len(), &m_2);
+            c_2.set_reader(Box::new(reader::channel(rx_2)));
+            c_2.register_writer(Box::new(writer::channel(tx_3)));
+            c_2.execute();
         });
         let m_3 = memory.clone();
         let t_3 = thread::Builder::new().name("3".to_string()).spawn(move || {
-            execute("3", m_3, rx_3, tx_4, false);
+            let mut c_3 = computer::new(m_3.len(), &m_3);
+            c_3.set_reader(Box::new(reader::channel(rx_3)));
+            c_3.register_writer(Box::new(writer::channel(tx_4)));
+            c_3.execute();
         });
         let m_4 = memory.clone();
         let t_4 = thread::Builder::new().name("4".to_string()).spawn(move || {
-            execute("4", m_4, rx_4, tx_0, true);
+            let mut c_4 = computer::new(m_4.len(), &m_4);
+            c_4.set_reader(Box::new(reader::channel(rx_4)));
+            c_4.register_writer(Box::new(writer::channel(tx_0)));
+            c_4.register_writer(Box::new(writer::channel(tx_ans)));
+            c_4.execute();
         });
 
         t_0.unwrap().join().expect("t_0");
-        t_1.unwrap().join().expect("t_1");
-        t_2.unwrap().join().expect("t_2");
-        t_3.unwrap().join().expect("t_3");
-        t_4.unwrap().join().expect("t_4");
+        t_1.unwrap().join().expect("t_0");
+        t_2.unwrap().join().expect("t_0");
+        t_3.unwrap().join().expect("t_0");
+        t_4.unwrap().join().expect("t_0");
+
+        loop {
+            let o = rx_ans.recv_timeout(Duration::from_millis(10)).unwrap_or(-1);
+            if o == -1 {
+                break;
+            }
+            if output < o {
+                output = o;
+            }
+        }
     }
+
+    println!("Part 2: {}", output);
 }
 
-fn get_permutations() -> Vec<Vec<i32>> {
+fn get_permutations(offset: i64) -> Vec<Vec<i64>> {
     let mut permutations = Vec::new();
-    for i0 in 5..10 {
-        for i1 in 5..10 {
+    for i0 in offset..offset + 5 {
+        for i1 in offset..offset + 5 {
             if i0 == i1 {
                 continue;
             }
-            for i2 in 5..10 {
+            for i2 in offset..offset + 5 {
                 if i0 == i2 || i1 == i2 {
                     continue;
                 }
-                for i3 in 5..10 {
+                for i3 in offset..offset + 5 {
                     if i0 == i3 || i1 == i3 || i2 == i3 {
                         continue;
                     }
-                    for i4 in 5..10 {
+                    for i4 in offset..offset + 5 {
                         if i0 == i4 || i1 == i4 || i2 == i4 || i3 == i4 {
                             continue;
                         }
@@ -90,126 +180,4 @@ fn get_permutations() -> Vec<Vec<i32>> {
         }
     }
     return permutations;
-}
-
-fn execute(
-    name: &str,
-    mut memory: Vec<i32>,
-    input: Receiver<i32>,
-    output: Sender<i32>,
-    print_last: bool,
-) -> i8 {
-    let mut last: i32 = 0;
-    let mut p = 0;
-
-    loop {
-        let (opcode, am, bm, _) = parse_instruction(memory[p]);
-        // println!(
-        //     "{} - {} -> op[{}] a[{}] b[{}]",
-        //     name, memory[p], opcode, am, bm
-        // );
-        match opcode {
-            // Addition
-            1 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                let b = get_value(&memory, bm, memory[p + 2]);
-                let r = memory[p + 3] as usize;
-                memory[r] = a + b;
-                p += 4;
-            }
-            // Multiplication
-            2 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                let b = get_value(&memory, bm, memory[p + 2]);
-                let r = memory[p + 3] as usize;
-                memory[r] = a * b;
-                p += 4;
-            }
-            // Get input
-            3 => {
-                let r = memory[p + 1] as usize;
-                let v = input.recv().unwrap();
-                memory[r] = v;
-                // println!("{} - INPUT: {} <- {}", name, r, v);
-                p += 2;
-            }
-            // Print
-            4 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                last = a;
-                output.send(a);
-                // println!("{} - LOG: {}", name, a);
-                p += 2;
-            }
-            // Jump if true
-            5 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                let b = get_value(&memory, bm, memory[p + 2]) as usize;
-                if a != 0 {
-                    p = b;
-                } else {
-                    p += 3;
-                }
-            }
-            // Jump if false
-            6 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                let b = get_value(&memory, bm, memory[p + 2]) as usize;
-                if a == 0 {
-                    p = b;
-                } else {
-                    p += 3;
-                }
-            }
-            // Less than
-            7 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                let b = get_value(&memory, bm, memory[p + 2]);
-                let r = memory[p + 3] as usize;
-                memory[r] = if a < b { 1 } else { 0 };
-                p += 4;
-            }
-            // Equals
-            8 => {
-                let a = get_value(&memory, am, memory[p + 1]);
-                let b = get_value(&memory, bm, memory[p + 2]);
-                let r = memory[p + 3] as usize;
-                memory[r] = if a == b { 1 } else { 0 };
-                p += 4;
-            }
-            99 => {
-                if print_last {
-                    println!("{} - Last: {}", name, last);
-                }
-                // println!("{} - 99", name);
-                return 0;
-            }
-            _ => {
-                println!("{} - -1", name);
-                return -1;
-            }
-        }
-    }
-}
-
-fn parse_instruction(mut instruction: i32) -> (i32, i32, i32, i32) {
-    let opcode = instruction % 100;
-    instruction /= 100;
-    let am = instruction % 10;
-    instruction /= 10;
-    let bm = instruction % 10;
-    instruction /= 10;
-    let rm = instruction % 10;
-    return (opcode, am, bm, rm);
-}
-
-fn get_value(memory: &Vec<i32>, mode: i32, parameter: i32) -> i32 {
-    let v: i32;
-    if mode == 1 {
-        v = parameter;
-    } else {
-        v = memory[parameter as usize];
-    }
-    // println!("  get_value(memory, {}, {}) -> {}", mode, parameter, v);
-    return v;
 }
