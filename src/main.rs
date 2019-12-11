@@ -7,8 +7,8 @@ extern crate quickcheck;
 extern crate quickcheck_macros;
 
 use clap::{App, Arg};
-mod days;
 mod computer;
+mod days;
 mod reader;
 mod writer;
 
@@ -20,6 +20,7 @@ fn main() {
         3 => days::day_3::run(input.as_ref()),
         4 => days::day_4::run(),
         5 => days::day_5::run(input.as_ref()),
+        6 => days::day_6::run(input.as_ref()),
         7 => days::day_7::run(input.as_ref()),
         _ => panic!("Cannot find wanted day."),
     }
@@ -34,7 +35,7 @@ fn get_args() -> (u8, String) {
                 .value_name("NUMBER")
                 .help("Day to execute, 1-25")
                 .required(true)
-                .possible_values(&["1", "2", "3", "4", "5", "7"]),
+                .possible_values(&["1", "2", "3", "4", "5", "6", "7"]),
         )
         .arg(
             Arg::with_name("input")
