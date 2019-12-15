@@ -10,7 +10,9 @@ impl Writer for StdOut {
     fn write(&self, value: i64) {
         use std::io::{stdout, Write};
         println!("Log: {}", value);
-        stdout().flush();
+        match stdout().flush() {
+            _ => {}
+        };
     }
 }
 
@@ -20,7 +22,7 @@ pub struct Channel {
 
 impl Writer for Channel {
     fn write(&self, value: i64) {
-        self.sender.send(value);
+        self.sender.send(value).expect("Could not send");
     }
 }
 

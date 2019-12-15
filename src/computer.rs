@@ -9,6 +9,7 @@ const INSTRUCTION_JUMP_IF_TRUE: i64 = 5;
 const INSTRUCTION_JUMP_IF_FALSE: i64 = 6;
 const INSTRUCTION_LESS_THAN: i64 = 7;
 const INSTRUCTION_EQUALS: i64 = 8;
+const INSTRUCTION_RELATIVE_ADD: i64 = 9;
 const INSTRUCTION_EXIT: i64 = 99;
 
 pub trait Computer {
@@ -21,6 +22,7 @@ pub trait Computer {
 pub struct IntComputer {
     memory: Vec<i64>,
     pointer: usize,
+    relative_base: i64,
     reader: Option<Box<dyn Reader>>,
     writers: Vec<Box<dyn Writer>>,
 }
@@ -35,41 +37,63 @@ pub fn new(memory_size: usize, program: &Vec<i64>) -> IntComputer {
     return IntComputer {
         memory: memory,
         pointer: 0,
+        relative_base: 0,
         reader: Option::None,
         writers: Vec::new(),
     };
 }
 
 impl IntComputer {
-    fn add(&mut self, am: i64, bm: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
-        let b = get_value(&self.memory, bm, self.memory[self.pointer + 2]);
+    fn get_value(&self, mode: i64, parameter: i64) -> i64 {
+        let v: i64;
+        if mode == 1 {
+            v = parameter;
+        } else if mode == 2 {
+            v = self.memory[(self.relative_base + parameter) as usize]
+        } else {
+            v = self.memory[parameter as usize];
+        }
+        return v;
+    }
+
+    fn set_value(&mut self, mode: i64, p: usize, v: i64) {
+        match mode {
+            0 => self.memory[p] = v,
+            1 => panic!("Cannot set value in immediate mode"),
+            2 => self.memory[(p as i64 + self.relative_base) as usize] = v,
+            _ => panic!("Mode not supported"),
+        }
+    }
+
+    fn add(&mut self, am: i64, bm: i64, cm: i64) {
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        let b = self.get_value(bm, self.memory[self.pointer + 2]);
         let r = self.memory[self.pointer + 3] as usize;
-        self.memory[r] = a + b;
+        self.set_value(cm, r, a + b);
         self.pointer += 4;
     }
 
-    fn mul(&mut self, am: i64, bm: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
-        let b = get_value(&self.memory, bm, self.memory[self.pointer + 2]);
+    fn mul(&mut self, am: i64, bm: i64, cm: i64) {
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        let b = self.get_value(bm, self.memory[self.pointer + 2]);
         let r = self.memory[self.pointer + 3] as usize;
-        self.memory[r] = a * b;
+        self.set_value(cm, r, a * b);
         self.pointer += 4;
     }
 
-    fn read(&mut self) {
+    fn read(&mut self, am: i64) {
         let r = self.memory[self.pointer + 1] as usize;
         let v = if let Some(reader) = &mut self.reader {
             reader.as_mut().read()
         } else {
             panic!("Cannot read, no reader defined")
         };
-        self.memory[r] = v;
+        self.set_value(am, r, v);
         self.pointer += 2;
     }
 
     fn write(&mut self, am: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
         for writer in &self.writers {
             writer.as_ref().write(a);
         }
@@ -77,8 +101,8 @@ impl IntComputer {
     }
 
     fn jump_if_true(&mut self, am: i64, bm: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
-        let b = get_value(&self.memory, bm, self.memory[self.pointer + 2]) as usize;
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        let b = self.get_value(bm, self.memory[self.pointer + 2]) as usize;
         if a != 0 {
             self.pointer = b;
         } else {
@@ -87,8 +111,8 @@ impl IntComputer {
     }
 
     fn jump_if_false(&mut self, am: i64, bm: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
-        let b = get_value(&self.memory, bm, self.memory[self.pointer + 2]) as usize;
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        let b = self.get_value(bm, self.memory[self.pointer + 2]) as usize;
         if a == 0 {
             self.pointer = b;
         } else {
@@ -96,36 +120,43 @@ impl IntComputer {
         }
     }
 
-    fn less_than(&mut self, am: i64, bm: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
-        let b = get_value(&self.memory, bm, self.memory[self.pointer + 2]);
+    fn less_than(&mut self, am: i64, bm: i64, cm: i64) {
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        let b = self.get_value(bm, self.memory[self.pointer + 2]);
         let r = self.memory[self.pointer + 3] as usize;
-        self.memory[r] = if a < b { 1 } else { 0 };
+        self.set_value(cm, r, if a < b { 1 } else { 0 });
         self.pointer += 4;
     }
 
-    fn equals(&mut self, am: i64, bm: i64) {
-        let a = get_value(&self.memory, am, self.memory[self.pointer + 1]);
-        let b = get_value(&self.memory, bm, self.memory[self.pointer + 2]);
+    fn equals(&mut self, am: i64, bm: i64, cm: i64) {
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        let b = self.get_value(bm, self.memory[self.pointer + 2]);
         let r = self.memory[self.pointer + 3] as usize;
-        self.memory[r] = if a == b { 1 } else { 0 };
+        self.set_value(cm, r, if a == b { 1 } else { 0 });
         self.pointer += 4;
+    }
+
+    fn relative_add(&mut self, am: i64) {
+        let a = self.get_value(am, self.memory[self.pointer + 1]);
+        self.relative_base += a;
+        self.pointer += 2;
     }
 }
 
 impl Computer for IntComputer {
     fn execute(&mut self) -> i8 {
         loop {
-            let (opcode, am, bm, _) = parse_instruction(self.memory[self.pointer]);
+            let (opcode, am, bm, cm) = parse_instruction(self.memory[self.pointer]);
             match opcode {
-                INSTRUCTION_ADD => self.add(am, bm),
-                INSTRUCTION_MUL => self.mul(am, bm),
-                INSTRUCTION_READ => self.read(),
+                INSTRUCTION_ADD => self.add(am, bm, cm),
+                INSTRUCTION_MUL => self.mul(am, bm, cm),
+                INSTRUCTION_READ => self.read(am),
                 INSTRUCTION_WRITE => self.write(am),
                 INSTRUCTION_JUMP_IF_TRUE => self.jump_if_true(am, bm),
                 INSTRUCTION_JUMP_IF_FALSE => self.jump_if_false(am, bm),
-                INSTRUCTION_LESS_THAN => self.less_than(am, bm),
-                INSTRUCTION_EQUALS => self.equals(am, bm),
+                INSTRUCTION_LESS_THAN => self.less_than(am, bm, cm),
+                INSTRUCTION_EQUALS => self.equals(am, bm, cm),
+                INSTRUCTION_RELATIVE_ADD => self.relative_add(am),
                 INSTRUCTION_EXIT => return 0,
                 _ => return -1,
             }
@@ -156,17 +187,6 @@ fn parse_instruction(mut instruction: i64) -> (i64, i64, i64, i64) {
     return (opcode, am, bm, rm);
 }
 
-fn get_value(memory: &Vec<i64>, mode: i64, parameter: i64) -> i64 {
-    let v: i64;
-    if mode == 1 {
-        v = parameter;
-    } else {
-        v = memory[parameter as usize];
-    }
-    // println!("  get_value(memory, {}, {}) -> {}", mode, parameter, v);
-    return v;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -175,7 +195,7 @@ mod tests {
     fn test_add_immediate(a: i64, b: i64) -> bool {
         let mut computer = new(4, &vec![INSTRUCTION_ADD, a, b, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.add(1, 1);
+        computer.add(1, 1, 0);
         assert_eq!(computer.pointer, 4);
         computer.memory[0] == a + b
     }
@@ -183,7 +203,7 @@ mod tests {
     fn test_add_position() {
         let mut computer = new(4, &vec![INSTRUCTION_ADD, 0, 0, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.add(0, 0);
+        computer.add(0, 0, 0);
         assert_eq!(computer.pointer, 4);
         assert_eq!(computer.memory[0], 2);
     }
@@ -192,7 +212,7 @@ mod tests {
     fn test_mul_immediate(a: i64, b: i64) -> bool {
         let mut computer = new(4, &vec![INSTRUCTION_MUL, a, b, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.mul(1, 1);
+        computer.mul(1, 1, 0);
         assert_eq!(computer.pointer, 4);
         computer.memory[0] == a * b
     }
@@ -200,7 +220,7 @@ mod tests {
     fn test_mul_position() {
         let mut computer = new(4, &vec![INSTRUCTION_MUL, 0, 0, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.mul(0, 0);
+        computer.mul(0, 0, 0);
         assert_eq!(computer.pointer, 4);
         assert_eq!(computer.memory[0], 4);
     }
@@ -218,7 +238,7 @@ mod tests {
         let mut computer = new(4, &vec![INSTRUCTION_READ, 0]);
         computer.set_reader(Box::from(TestReader { v: v }));
         assert_eq!(computer.pointer, 0);
-        computer.read();
+        computer.read(0);
         assert_eq!(computer.pointer, 2);
         computer.memory[0] == v
     }
@@ -284,7 +304,7 @@ mod tests {
     fn test_less_than_immediate(a: i64, b: i64) -> bool {
         let mut computer = new(4, &vec![INSTRUCTION_LESS_THAN, a, b, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.less_than(1, 1);
+        computer.less_than(1, 1, 0);
         assert_eq!(computer.pointer, 4);
         computer.memory[0] == if a < b { 1 } else { 0 }
     }
@@ -292,7 +312,7 @@ mod tests {
     fn test_less_than_position() {
         let mut computer = new(4, &vec![INSTRUCTION_LESS_THAN, 3, 1, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.less_than(0, 0);
+        computer.less_than(0, 0, 0);
         assert_eq!(computer.pointer, 4);
         assert_eq!(computer.memory[0], 1);
     }
@@ -301,7 +321,7 @@ mod tests {
     fn test_equals_immediate(a: i64, b: i64) -> bool {
         let mut computer = new(4, &vec![INSTRUCTION_EQUALS, a, b, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.equals(1, 1);
+        computer.equals(1, 1, 0);
         assert_eq!(computer.pointer, 4);
         computer.memory[0] == if a == b { 1 } else { 0 }
     }
@@ -309,7 +329,7 @@ mod tests {
     fn test_equals_position() {
         let mut computer = new(5, &vec![INSTRUCTION_EQUALS, 3, 4, 0]);
         assert_eq!(computer.pointer, 0);
-        computer.equals(0, 0);
+        computer.equals(0, 0, 0);
         assert_eq!(computer.pointer, 4);
         assert_eq!(computer.memory[0], 1);
     }
