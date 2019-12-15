@@ -7,6 +7,7 @@ const LAYER_SIZE: usize = WIDTH * HEIGHT;
 pub fn run(input: &str) {
     let pixels = load_inputs(input);
     part_1(&pixels);
+    part_2(&pixels);
 }
 
 fn load_inputs(file_name: &str) -> Vec<u32> {
@@ -53,4 +54,36 @@ fn part_1(pixels: &Vec<u32>) {
 }
 
 fn part_2(pixels: &Vec<u32>) {
+    let mut image = [2; LAYER_SIZE];
+
+    let layers = pixels.len() / LAYER_SIZE;
+    assert_eq!(pixels.len(), layers * LAYER_SIZE);
+
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            let i = y * WIDTH + x;
+
+            for layer in 0..layers {
+                let j = layer * LAYER_SIZE + i;
+                if pixels[j] == 2 {
+                    continue;
+                }
+                image[i] = pixels[j];
+                break;
+            }
+        }
+    }
+
+    assert_eq!(image.len(), HEIGHT * WIDTH);
+
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            match image[y * WIDTH + x] {
+                0 => print!("▉"),
+                1 => print!(" "),
+                _ => panic!("Not a giffy"),
+            }
+        }
+        println!("");
+    }
 }
